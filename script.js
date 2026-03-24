@@ -7,39 +7,143 @@ const MOOD_SCORES = {
   Happy: 5
 };
 
-const form = document.getElementById("trackerForm");
-const resetButton = document.getElementById("resetButton");
-const exportButton = document.getElementById("exportButton");
-const historyList = document.getElementById("historyList");
-const entryTemplate = document.getElementById("entryTemplate");
-const formMessage = document.getElementById("formMessage");
-const totalEntries = document.getElementById("totalEntries");
-const latestMood = document.getElementById("latestMood");
-const exerciseRate = document.getElementById("exerciseRate");
-const dateInput = document.getElementById("date");
-const weightInput = document.getElementById("weight");
-const calendarTitle = document.getElementById("calendarTitle");
-const calendarGrid = document.getElementById("calendarGrid");
-const prevMonthButton = document.getElementById("prevMonthButton");
-const nextMonthButton = document.getElementById("nextMonthButton");
-const moodChart = document.getElementById("moodChart");
-const moodChartEmptyState = document.getElementById("moodChartEmptyState");
-const weightChart = document.getElementById("weightChart");
-const weightChartEmptyState = document.getElementById("weightChartEmptyState");
+let form;
+let resetButton;
+let exportButton;
+let historyList;
+let entryTemplate;
+let formMessage;
+let totalEntries;
+let latestMood;
+let exerciseRate;
+let dateInput;
+let weightInput;
+let calendarTitle;
+let calendarGrid;
+let prevMonthButton;
+let nextMonthButton;
+let moodChart;
+let moodChartEmptyState;
+let weightChart;
+let weightChartEmptyState;
+let authTitle;
+let authStatus;
+let loginButton;
+let logoutButton;
 
 const today = new Date();
 const todayKey = toDateValue(today);
-dateInput.value = todayKey;
 
 let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDate = todayKey;
-let entries = loadEntries();
+let entries = [];
 
-render();
-setupPwa();
+let auth = null;
+let db = null;
+let firebaseEnabled = false;
+let currentUser = null;
 
-form.addEventListener("submit", (event) => {
+window.addEventListener("load", initApp);
+
+function initApp() {
+  bindElements();
+  dateInput.value = todayKey;
+  bindEvents();
+  initFirebase();
+}
+
+function bindElements() {
+  form = document.getElementById("trackerForm");
+  resetButton = document.getElementById("resetButton");
+  exportButton = document.getElementById("exportButton");
+  historyList = document.getElementById("historyList");
+  entryTemplate = document.getElementById("entryTemplate");
+  formMessage = document.getElementById("formMessage");
+  totalEntries = document.getElementById("totalEntries");
+  latestMood = document.getElementById("latestMood");
+  exerciseRate = document.getElementById("exerciseRate");
+  dateInput = document.getElementById("date");
+  weightInput = document.getElementById("weight");
+  calendarTitle = document.getElementById("calendarTitle");
+  calendarGrid = document.getElementById("calendarGrid");
+  prevMonthButton = document.getElementById("prevMonthButton");
+  nextMonthButton = document.getElementById("nextMonthButton");
+  moodChart = document.getElementById("moodChart");
+  moodChartEmptyState = document.getElementById("moodChartEmptyState");
+  weightChart = document.getElementById("weightChart");
+  weightChartEmptyState = document.getElementById("weightChartEmptyState");
+  authTitle = document.getElementById("authTitle");
+  authStatus = document.getElementById("authStatus");
+  loginButton = document.getElementById("loginButton");
+  logoutButton = document.getElementById("logoutButton");
+}
+
+function bindEvents() {
+  form.addEventListener("submit", handleSubmit);
+  resetButton.addEventListener("click", handleReset);
+  exportButton.addEventListener("click", handleExport);
+  historyList.addEventListener("click", handleHistoryClick);
+  calendarGrid.addEventListener("click", handleCalendarClick);
+  prevMonthButton.addEventListener("click", () => {
+    currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    renderCalendar();
+  });
+  nextMonthButton.addEventListener("click", () => {
+    currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+    renderCalendar();
+  });
+  loginButton.addEventListener("click", signInWithGoogle);
+  logoutButton.addEventListener("click", signOutUser);
+  window.addEventListener("resize", () => {
+    renderMoodChart();
+    renderWeightChart();
+  });
+}
+
+function initFirebase() {
+  const firebaseOptions = window.MOOD_TRACKER_FIREBASE;
+  const config = firebaseOptions?.config || {};
+  firebaseEnabled = Boolean(
+    firebaseOptions?.enabled &&
+    window.firebase &&
+    config.apiKey &&
+    config.authDomain &&
+    config.projectId &&
+    config.appId
+  );
+
+  if (!firebaseEnabled) {
+    entries = loadEntriesFromLocal();
+    updateAuthUi();
+    render();
+    return;
+  }
+
+  firebase.initializeApp(config);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  auth.useDeviceLanguage();
+
+  auth.onAuthStateChanged(async (user) => {
+    currentUser = user;
+    updateAuthUi();
+
+    if (currentUser) {
+      await loadEntriesFromCloud();
+    } else {
+      entries = [];
+      render();
+    }
+  });
+}
+
+async function handleSubmit(event) {
   event.preventDefault();
+
+  if (firebaseEnabled && !currentUser) {
+    showMessage("Sign in with Google to save and sync your entries.");
+    return;
+  }
 
   const formData = new FormData(form);
   const weightRaw = String(formData.get("weight") || "").trim();
@@ -72,20 +176,26 @@ form.addEventListener("submit", (event) => {
   entries = sortEntries(entries);
   selectedDate = entry.date;
   currentMonth = new Date(getDateParts(entry.date).year, getDateParts(entry.date).month - 1, 1);
-  saveEntries(entries);
-  render();
-});
 
-resetButton.addEventListener("click", () => {
+  if (firebaseEnabled && currentUser) {
+    await saveEntryToCloud(entry);
+  } else {
+    saveEntriesToLocal(entries);
+  }
+
+  render();
+}
+
+function handleReset() {
   form.reset();
   dateInput.value = todayKey;
   weightInput.value = "";
   selectedDate = todayKey;
   showMessage("The form has been reset.");
   renderCalendar();
-});
+}
 
-exportButton.addEventListener("click", () => {
+function handleExport() {
   if (!entries.length) {
     showMessage("No data to export yet.");
     return;
@@ -99,9 +209,9 @@ exportButton.addEventListener("click", () => {
   link.click();
   URL.revokeObjectURL(url);
   showMessage("JSON file exported.");
-});
+}
 
-historyList.addEventListener("click", (event) => {
+async function handleHistoryClick(event) {
   const target = event.target;
 
   if (!(target instanceof HTMLButtonElement)) {
@@ -113,8 +223,14 @@ historyList.addEventListener("click", (event) => {
     return;
   }
 
+  const entryToDelete = entries.find((entry) => entry.id === entryId);
   entries = entries.filter((entry) => entry.id !== entryId);
-  saveEntries(entries);
+
+  if (firebaseEnabled && currentUser && entryToDelete) {
+    await deleteEntryFromCloud(entryToDelete.date);
+  } else {
+    saveEntriesToLocal(entries);
+  }
 
   if (!entries.some((entry) => entry.date === selectedDate)) {
     selectedDate = dateInput.value || todayKey;
@@ -122,9 +238,9 @@ historyList.addEventListener("click", (event) => {
 
   render();
   showMessage("This entry has been deleted.");
-});
+}
 
-calendarGrid.addEventListener("click", (event) => {
+function handleCalendarClick(event) {
   const target = event.target.closest("[data-date]");
   if (!(target instanceof HTMLElement)) {
     return;
@@ -138,17 +254,98 @@ calendarGrid.addEventListener("click", (event) => {
   selectedDate = date;
   loadEntryIntoForm(date);
   renderCalendar();
-});
+}
 
-prevMonthButton.addEventListener("click", () => {
-  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-  renderCalendar();
-});
+function updateAuthUi() {
+  if (!firebaseEnabled) {
+    authTitle.textContent = "Local mode";
+    authStatus.textContent = "Cloud sync is not configured yet. Your data is saved only in this browser.";
+    loginButton.hidden = true;
+    logoutButton.hidden = true;
+    return;
+  }
 
-nextMonthButton.addEventListener("click", () => {
-  currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-  renderCalendar();
-});
+  if (currentUser) {
+    authTitle.textContent = "Google account connected";
+    authStatus.textContent = `Signed in as ${currentUser.displayName || currentUser.email}. Only your own records will load here.`;
+    loginButton.hidden = true;
+    logoutButton.hidden = false;
+    return;
+  }
+
+  authTitle.textContent = "Sign in to sync";
+  authStatus.textContent = "Sign in with Google to keep your records private to your own account and sync them across devices.";
+  loginButton.hidden = false;
+  logoutButton.hidden = true;
+}
+
+async function signInWithGoogle() {
+  if (!firebaseEnabled || !auth) {
+    showMessage("Google sign-in is not configured yet.");
+    return;
+  }
+
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  try {
+    if (isMobileDevice()) {
+      await auth.signInWithRedirect(provider);
+      return;
+    }
+
+    await auth.signInWithPopup(provider);
+  } catch (error) {
+    showMessage(error.message || "Google sign-in failed.");
+  }
+}
+
+async function signOutUser() {
+  if (!auth) {
+    return;
+  }
+
+  await auth.signOut();
+  showMessage("Signed out.");
+}
+
+async function loadEntriesFromCloud() {
+  const snapshot = await db
+    .collection("users")
+    .doc(currentUser.uid)
+    .collection("entries")
+    .orderBy("date", "desc")
+    .get();
+
+  entries = snapshot.docs.map((doc) => normalizeEntry(doc.data()));
+  render();
+}
+
+async function saveEntryToCloud(entry) {
+  await db
+    .collection("users")
+    .doc(currentUser.uid)
+    .collection("entries")
+    .doc(entry.date)
+    .set(entry);
+}
+
+async function deleteEntryFromCloud(date) {
+  await db
+    .collection("users")
+    .doc(currentUser.uid)
+    .collection("entries")
+    .doc(date)
+    .delete();
+}
+
+function normalizeEntry(entry) {
+  return {
+    ...entry,
+    exercise: Array.isArray(entry.exercise) ? entry.exercise : [],
+    discomfort: Array.isArray(entry.discomfort) ? entry.discomfort : [],
+    weight: typeof entry.weight === "number" ? entry.weight : null
+  };
+}
 
 function render() {
   renderSummary();
@@ -376,7 +573,9 @@ function renderHistory() {
 
   if (!entries.length) {
     historyList.className = "history-list empty-state";
-    historyList.textContent = "No entries yet. Start by logging today.";
+    historyList.textContent = firebaseEnabled && !currentUser
+      ? "Sign in to see your synced entries."
+      : "No entries yet. Start by logging today.";
     return;
   }
 
@@ -434,19 +633,6 @@ function loadEntryIntoForm(date) {
   weightInput.value = typeof entry.weight === "number" ? String(entry.weight) : "";
 
   showMessage(`Loaded the entry for ${formatDate(date)}.`);
-}
-
-function setupPwa() {
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => registration.unregister());
-    });
-  }
-
-  window.addEventListener("resize", () => {
-    renderMoodChart();
-    renderWeightChart();
-  });
 }
 
 function syncCanvasSize(canvas) {
@@ -562,7 +748,7 @@ function getEntriesWithinLastMonth(list) {
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
-function loadEntries() {
+function loadEntriesFromLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -570,13 +756,13 @@ function loadEntries() {
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? sortEntries(parsed) : [];
+    return Array.isArray(parsed) ? sortEntries(parsed.map(normalizeEntry)) : [];
   } catch {
     return [];
   }
 }
 
-function saveEntries(nextEntries) {
+function saveEntriesToLocal(nextEntries) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
 }
 
@@ -624,4 +810,8 @@ function getDateParts(dateString) {
 
 function showMessage(message) {
   formMessage.textContent = message;
+}
+
+function isMobileDevice() {
+  return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 }
