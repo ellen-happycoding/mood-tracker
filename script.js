@@ -437,8 +437,10 @@ function loadEntryIntoForm(date) {
 }
 
 function setupPwa() {
-  if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => registration.unregister());
+    });
   }
 
   window.addEventListener("resize", () => {
