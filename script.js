@@ -124,6 +124,10 @@ function initFirebase() {
   db = firebase.firestore();
   auth.useDeviceLanguage();
 
+  auth.getRedirectResult().catch((error) => {
+    showAuthError(error);
+  });
+
   auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     updateAuthUi();
@@ -286,12 +290,29 @@ async function signInWithGoogle() {
   }
 
   const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
 
   try {
-    showMessage("Redirecting to Google sign-in...");
-    await auth.signInWithRedirect(provider);
+    if (isMobileDevice()) {
+      showMessage("Redirecting to Google sign-in...");
+      await auth.signInWithRedirect(provider);
+      return;
+    }
+
+    await auth.signInWithPopup(provider);
   } catch (error) {
-    showMessage(error.message || "Google sign-in failed.");
+    if (error?.code === "auth/popup-blocked" || error?.code === "auth/cancelled-popup-request") {
+      try {
+        showMessage("Popup was blocked. Switching to redirect sign-in...");
+        await auth.signInWithRedirect(provider);
+        return;
+      } catch (redirectError) {
+        showAuthError(redirectError);
+        return;
+      }
+    }
+
+    showAuthError(error);
   }
 }
 
@@ -806,4 +827,15 @@ function getDateParts(dateString) {
 
 function showMessage(message) {
   formMessage.textContent = message;
+}
+
+function showAuthError(error) {
+  const message = error?.message || "Google sign-in failed.";
+  authStatus.textContent = message;
+  showMessage(message);
+  console.error(error);
+}
+
+function isMobileDevice() {
+  return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 }
