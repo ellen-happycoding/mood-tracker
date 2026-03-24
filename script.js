@@ -1,4 +1,4 @@
-const STORAGE_KEY = "mood-tracker-entries-v1";
+const STORAGE_KEY = "mood-tracker-entries-v2";
 const MOOD_SCORES = {
   "Very low": 1,
   "A bit low": 2,
