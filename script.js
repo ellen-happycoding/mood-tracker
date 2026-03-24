@@ -23,9 +23,6 @@ const prevMonthButton = document.getElementById("prevMonthButton");
 const nextMonthButton = document.getElementById("nextMonthButton");
 const moodChart = document.getElementById("moodChart");
 const chartEmptyState = document.getElementById("chartEmptyState");
-const installBanner = document.getElementById("installBanner");
-const installButton = document.getElementById("installButton");
-const dismissInstallButton = document.getElementById("dismissInstallButton");
 
 const today = new Date();
 const todayKey = toDateValue(today);
@@ -34,7 +31,6 @@ dateInput.value = todayKey;
 let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDate = todayKey;
 let entries = loadEntries();
-let deferredInstallPrompt = null;
 
 render();
 setupPwa();
@@ -145,25 +141,6 @@ prevMonthButton.addEventListener("click", () => {
 nextMonthButton.addEventListener("click", () => {
   currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
   renderCalendar();
-});
-
-installButton.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) {
-    showInstallHelp();
-    return;
-  }
-
-  deferredInstallPrompt.prompt();
-  const choice = await deferredInstallPrompt.userChoice;
-  if (choice.outcome === "accepted") {
-    hideInstallBanner();
-  }
-  deferredInstallPrompt = null;
-});
-
-dismissInstallButton.addEventListener("click", () => {
-  localStorage.setItem("mood-tracker-dismiss-install", "1");
-  hideInstallBanner();
 });
 
 function render() {
@@ -395,25 +372,6 @@ function setupPwa() {
     navigator.serviceWorker.register("./sw.js").catch(() => {});
   }
 
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-
-    if (!localStorage.getItem("mood-tracker-dismiss-install")) {
-      showInstallBanner("安装到手机主屏幕后，每天打开会更像独立 app。");
-    }
-  });
-
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    hideInstallBanner();
-    showMessage("已安装到主屏幕。");
-  });
-
-  if (window.location.protocol === "file:") {
-    showInstallBanner("手机上建议用一个网址打开；本地文件模式下不能直接安装成 app。");
-  }
-
   window.addEventListener("resize", () => {
     renderChart();
   });
@@ -429,26 +387,6 @@ function syncCanvasSize() {
     moodChart.width = width;
     moodChart.height = height;
   }
-}
-
-function showInstallBanner(message) {
-  const installHint = document.getElementById("installHint");
-  installHint.textContent = message;
-  installBanner.hidden = false;
-}
-
-function hideInstallBanner() {
-  installBanner.hidden = true;
-}
-
-function showInstallHelp() {
-  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIos) {
-    showMessage("iPhone 上请点浏览器的分享按钮，再选“添加到主屏幕”。");
-    return;
-  }
-
-  showMessage("如果浏览器没有弹出安装，通常可以在浏览器菜单里找到“安装应用”或“添加到主屏幕”。");
 }
 
 function setCheckboxGroup(name, values) {

@@ -49,33 +49,6 @@ body::before {
   position: relative;
 }
 
-.install-banner {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: center;
-  padding: 14px 18px;
-  margin: 0;
-  background: rgba(255, 248, 240, 0.96);
-  border-bottom: 1px solid rgba(87, 57, 37, 0.12);
-  backdrop-filter: blur(18px);
-}
-
-.install-banner p {
-  margin: 4px 0 0;
-  color: var(--muted);
-}
-
-.install-actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .mobile-nav {
   display: none;
 }
@@ -566,17 +539,6 @@ textarea {
   .app-shell {
     width: min(100% - 20px, 100%);
     margin: 18px auto 24px;
-  }
-
-  .install-banner {
-    padding: 12px 14px;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .install-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
   }
 
   .mobile-nav {
