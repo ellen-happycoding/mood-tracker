@@ -205,15 +205,15 @@ h1 {
 }
 
 .calendar-day {
-  min-height: 104px;
+  min-height: 96px;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.72);
-  padding: 12px;
+  padding: 10px 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   align-items: flex-start;
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
@@ -243,11 +243,12 @@ h1 {
 
 .day-number {
   font-weight: 700;
+  font-size: 0.96rem;
 }
 
 .day-badge,
 .day-subtext {
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
 .day-badge {
@@ -382,7 +383,7 @@ h1 {
 
 .weight-field {
   display: grid;
-  grid-template-columns: auto minmax(110px, 170px) auto;
+  grid-template-columns: auto minmax(180px, 1fr) auto;
   align-items: center;
   gap: 10px;
 }
@@ -412,6 +413,7 @@ textarea {
 
 .weight-field input {
   min-width: 0;
+  width: 100%;
 }
 
 textarea {
@@ -648,17 +650,43 @@ textarea {
 
   .weekday-row,
   .calendar-grid {
-    min-width: 560px;
-    gap: 6px;
-  }
-
-  .calendar-panel {
-    overflow-x: auto;
+    min-width: 0;
+    gap: 4px;
   }
 
   .calendar-day {
-    min-height: 92px;
-    padding: 10px 8px;
+    min-height: 72px;
+    padding: 8px 6px;
+    border-radius: 14px;
+    gap: 4px;
+  }
+
+  .weekday-row {
+    font-size: 0.72rem;
+  }
+
+  .day-number {
+    font-size: 0.88rem;
+  }
+
+  .day-badge,
+  .day-subtext {
+    font-size: 0.68rem;
+  }
+
+  input[type="date"] {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .weight-field {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .weight-field em {
+    text-align: right;
   }
 
   .chart-wrap {
