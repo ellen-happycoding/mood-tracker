@@ -1,4 +1,4 @@
-const STORAGE_KEY = "mood-tracker-entries-v2";
+const STORAGE_KEY = "mood-tracker-entries-v1";
 const MOOD_SCORES = {
   "Very low": 1,
   "A bit low": 2,
@@ -44,6 +44,9 @@ let firebaseEnabled = false;
 let currentUser = null;
 
 window.addEventListener("load", initApp);
+window.handleGoogleLogin = () => {
+  signInWithGoogle();
+};
 
 function initApp() {
   bindElements();
@@ -288,6 +291,8 @@ async function signInWithGoogle() {
     showMessage("Google sign-in is not configured yet.");
     return;
   }
+
+  showMessage("Starting Google sign-in...");
 
   const provider = new firebase.auth.GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
