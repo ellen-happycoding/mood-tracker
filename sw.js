@@ -1,4 +1,4 @@
-const CACHE_NAME = "mood-tracker-v1";
+const CACHE_NAME = "mood-tracker-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
