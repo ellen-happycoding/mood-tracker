@@ -71,6 +71,12 @@ body::before {
   line-height: 1.6;
 }
 
+.auth-debug {
+  margin-top: 10px;
+  color: var(--brand-deep);
+  font-size: 0.92rem;
+}
+
 .auth-actions {
   display: flex;
   gap: 10px;

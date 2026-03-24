@@ -28,6 +28,7 @@ let weightChart;
 let weightChartEmptyState;
 let authTitle;
 let authStatus;
+let authDebug;
 let loginButton;
 let logoutButton;
 
@@ -77,6 +78,7 @@ function bindElements() {
   weightChartEmptyState = document.getElementById("weightChartEmptyState");
   authTitle = document.getElementById("authTitle");
   authStatus = document.getElementById("authStatus");
+  authDebug = document.getElementById("authDebug");
   loginButton = document.getElementById("loginButton");
   logoutButton = document.getElementById("logoutButton");
 }
@@ -267,6 +269,7 @@ function updateAuthUi() {
   if (!firebaseEnabled) {
     authTitle.textContent = "Local mode";
     authStatus.textContent = "Cloud sync is not configured yet. Your data is saved only in this browser.";
+    authDebug.textContent = "Debug: Firebase disabled";
     loginButton.hidden = true;
     logoutButton.hidden = true;
     return;
@@ -275,6 +278,7 @@ function updateAuthUi() {
   if (currentUser) {
     authTitle.textContent = "Google account connected";
     authStatus.textContent = `Signed in as ${currentUser.displayName || currentUser.email}. Only your own records will load here.`;
+    authDebug.textContent = `Debug: signed in as ${currentUser.email || "unknown user"}`;
     loginButton.hidden = true;
     logoutButton.hidden = false;
     return;
@@ -282,6 +286,7 @@ function updateAuthUi() {
 
   authTitle.textContent = "Sign in to sync";
   authStatus.textContent = "Sign in with Google to keep your records private to your own account and sync them across devices.";
+  authDebug.textContent = "Debug: no Firebase user session";
   loginButton.hidden = false;
   logoutButton.hidden = true;
 }
