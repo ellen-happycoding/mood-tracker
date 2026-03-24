@@ -388,6 +388,10 @@ h1 {
   gap: 10px;
 }
 
+.date-field {
+  max-width: 240px;
+}
+
 .weight-field > span,
 .weight-field em {
   margin: 0;
@@ -675,8 +679,12 @@ textarea {
   }
 
   input[type="date"] {
-    max-width: 100%;
+    width: 100%;
     min-width: 0;
+  }
+
+  .date-field {
+    max-width: 220px;
   }
 
   .weight-field {
