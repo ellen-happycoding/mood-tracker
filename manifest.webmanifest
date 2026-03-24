@@ -1,13 +1,13 @@
 {
   "name": "Mood Tracker",
   "short_name": "Mood",
-  "description": "记录每天的情绪、运动、饮食、姨妈和身体状态。",
+  "description": "Track mood, exercise, meals, period, weight, and body status every day.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4efe7",
   "theme_color": "#bf5f3c",
-  "lang": "zh-CN",
+  "lang": "en",
   "icons": [
     {
       "src": "./icon.svg",

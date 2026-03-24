@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,192 +8,214 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Mood Tracker">
-  <meta name="description" content="一个适合手机使用的每日情绪与身体状态记录工具。">
+  <meta name="description" content="A mobile-friendly daily tracker for mood, body signals, meals, exercise, and weight.">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
-  <nav class="mobile-nav" aria-label="快捷导航">
-    <a href="#checkinPanel">记录</a>
-    <a href="#calendarPanel">月历</a>
-    <a href="#chartPanel">趋势</a>
-    <a href="#historyPanel">历史</a>
+  <nav class="mobile-nav" aria-label="Quick navigation">
+    <a href="#checkinPanel">Check-in</a>
+    <a href="#calendarPanel">Calendar</a>
+    <a href="#trendsPanel">Trends</a>
+    <a href="#historyPanel">History</a>
   </nav>
 
   <main class="app-shell">
     <section class="hero-card">
       <p class="eyebrow">Daily Check-In</p>
-      <h1>记录今天的身体和心情</h1>
+      <h1>Track your body and mood today</h1>
       <p class="hero-copy">
-        用几分钟留下今天的状态。情绪高低、运动、饮食、姨妈、身体不舒服，都可以简单记下来。
+        Take a minute to capture how today feels. Mood, exercise, meals, period, weight, and physical discomfort can all be logged in one place.
       </p>
       <div class="hero-stats">
         <article>
           <span id="totalEntries">0</span>
-          <p>累计记录</p>
+          <p>Total entries</p>
         </article>
         <article>
           <span id="latestMood">-</span>
-          <p>最近情绪</p>
+          <p>Latest mood</p>
         </article>
         <article>
           <span id="exerciseRate">0%</span>
-          <p>运动占比</p>
+          <p>Exercise rate</p>
         </article>
       </div>
     </section>
 
-    <section class="overview-grid">
-      <section id="calendarPanel" class="panel calendar-panel">
-        <div class="panel-header">
-          <div>
-            <p class="panel-kicker">Calendar View</p>
-            <h2>月历视图</h2>
-          </div>
-          <div class="calendar-nav">
-            <button id="prevMonthButton" class="ghost-button" type="button">上个月</button>
-            <p id="calendarTitle" class="calendar-title"></p>
-            <button id="nextMonthButton" class="ghost-button" type="button">下个月</button>
-          </div>
-        </div>
-        <div class="weekday-row" aria-hidden="true">
-          <span>一</span>
-          <span>二</span>
-          <span>三</span>
-          <span>四</span>
-          <span>五</span>
-          <span>六</span>
-          <span>日</span>
-        </div>
-        <div id="calendarGrid" class="calendar-grid"></div>
-        <p class="calendar-hint">点某一天可以把已有记录载入表单，方便修改。</p>
-      </section>
-
-      <section id="chartPanel" class="panel chart-panel">
-        <div class="panel-header">
-          <div>
-            <p class="panel-kicker">Mood Trend</p>
-            <h2>情绪趋势图</h2>
-          </div>
-          <p class="chart-caption">最近 14 次记录</p>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="moodChart" width="720" height="320" aria-label="情绪趋势图"></canvas>
-          <div id="chartEmptyState" class="chart-empty-state">至少记录 2 天后，这里会显示情绪变化曲线。</div>
-        </div>
-        <div class="chart-legend">
-          <span><i class="legend-dot low"></i>低落</span>
-          <span><i class="legend-dot mid"></i>平稳</span>
-          <span><i class="legend-dot high"></i>开心</span>
-        </div>
-      </section>
-    </section>
-
-    <section class="content-grid">
+    <section class="content-grid top-grid">
       <section id="checkinPanel" class="panel form-panel">
         <div class="panel-header">
           <div>
-            <p class="panel-kicker">今日填写</p>
-            <h2>状态记录</h2>
+            <p class="panel-kicker">Today</p>
+            <h2>Daily log</h2>
           </div>
-          <button id="resetButton" class="ghost-button" type="button">清空表单</button>
+          <button id="resetButton" class="ghost-button" type="button">Reset form</button>
         </div>
 
         <form id="trackerForm" class="tracker-form">
           <label class="field">
-            <span>日期</span>
+            <span>Date</span>
             <input id="date" name="date" type="date" required>
           </label>
 
           <div class="field">
-            <span>今天整体情绪怎么样？</span>
+            <span>How is your overall mood today?</span>
             <div class="segmented-control">
-              <label><input type="radio" name="mood" value="很低落" required><span>很低落</span></label>
-              <label><input type="radio" name="mood" value="有点低"><span>有点低</span></label>
-              <label><input type="radio" name="mood" value="平稳"><span>平稳</span></label>
-              <label><input type="radio" name="mood" value="不错"><span>不错</span></label>
-              <label><input type="radio" name="mood" value="很开心"><span>很开心</span></label>
+              <label><input type="radio" name="mood" value="Very low" required><span>Very low</span></label>
+              <label><input type="radio" name="mood" value="A bit low"><span>A bit low</span></label>
+              <label><input type="radio" name="mood" value="Steady"><span>Steady</span></label>
+              <label><input type="radio" name="mood" value="Good"><span>Good</span></label>
+              <label><input type="radio" name="mood" value="Happy"><span>Happy</span></label>
             </div>
           </div>
 
           <div class="field">
-            <span>今天做了什么运动？</span>
+            <span>What exercise did you do today?</span>
             <div class="choice-grid">
-              <label><input type="checkbox" name="exercise" value="散步"><span>散步</span></label>
-              <label><input type="checkbox" name="exercise" value="跑步"><span>跑步</span></label>
-              <label><input type="checkbox" name="exercise" value="力量训练"><span>力量训练</span></label>
-              <label><input type="checkbox" name="exercise" value="瑜伽/拉伸"><span>瑜伽/拉伸</span></label>
-              <label><input type="checkbox" name="exercise" value="骑车"><span>骑车</span></label>
-              <label><input type="checkbox" name="exercise" value="没有运动"><span>没有运动</span></label>
+              <label><input type="checkbox" name="exercise" value="Walking"><span>Walking</span></label>
+              <label><input type="checkbox" name="exercise" value="Running"><span>Running</span></label>
+              <label><input type="checkbox" name="exercise" value="Strength training"><span>Strength training</span></label>
+              <label><input type="checkbox" name="exercise" value="Yoga / Stretching"><span>Yoga / Stretching</span></label>
+              <label><input type="checkbox" name="exercise" value="Sunset"><span>Sunset</span></label>
+              <label><input type="checkbox" name="exercise" value="No exercise"><span>No exercise</span></label>
             </div>
           </div>
 
           <div class="field inline-grid">
             <label>
-              <span>今天是否来姨妈？</span>
+              <span>Period status</span>
               <select id="periodStatus" name="periodStatus">
-                <option value="未记录">未记录</option>
-                <option value="来了">来了</option>
-                <option value="快来了">快来了</option>
-                <option value="快结束">快结束</option>
-                <option value="没有">没有</option>
+                <option value="Not logged">Not logged</option>
+                <option value="On period">On period</option>
+                <option value="Starting soon">Starting soon</option>
+                <option value="Ending soon">Ending soon</option>
+                <option value="No">No</option>
               </select>
             </label>
 
             <label>
-              <span>今天吃饭正常吗？</span>
+              <span>How were your meals today?</span>
               <select id="mealStatus" name="mealStatus">
-                <option value="正常">正常</option>
-                <option value="一般">一般</option>
-                <option value="吃得少">吃得少</option>
-                <option value="暴饮暴食">暴饮暴食</option>
-                <option value="不规律">不规律</option>
+                <option value="Normal">Normal</option>
+                <option value="Okay">Okay</option>
+                <option value="Too little">Too little</option>
+                <option value="Overate">Overate</option>
+                <option value="Irregular">Irregular</option>
               </select>
             </label>
           </div>
 
+          <label class="field weight-field">
+            <span>Weight today</span>
+            <input id="weight" name="weight" type="number" inputmode="decimal" min="20" max="300" step="0.1" placeholder="For example 52.4">
+            <em>kg</em>
+          </label>
+
           <div class="field">
-            <span>有没有身体不舒服？</span>
+            <span>Any physical discomfort?</span>
             <div class="choice-grid discomfort-grid">
-              <label><input type="checkbox" name="discomfort" value="头痛"><span>头痛</span></label>
-              <label><input type="checkbox" name="discomfort" value="胃不舒服"><span>胃不舒服</span></label>
-              <label><input type="checkbox" name="discomfort" value="腰酸"><span>腰酸</span></label>
-              <label><input type="checkbox" name="discomfort" value="腹痛"><span>腹痛</span></label>
-              <label><input type="checkbox" name="discomfort" value="疲惫"><span>疲惫</span></label>
-              <label><input type="checkbox" name="discomfort" value="失眠"><span>失眠</span></label>
-              <label><input type="checkbox" name="discomfort" value="焦虑"><span>焦虑</span></label>
-              <label><input type="checkbox" name="discomfort" value="没有明显不适"><span>没有明显不适</span></label>
+              <label><input type="checkbox" name="discomfort" value="Headache"><span>Headache</span></label>
+              <label><input type="checkbox" name="discomfort" value="Stomach discomfort"><span>Stomach discomfort</span></label>
+              <label><input type="checkbox" name="discomfort" value="Lower back pain"><span>Lower back pain</span></label>
+              <label><input type="checkbox" name="discomfort" value="Cramps"><span>Cramps</span></label>
+              <label><input type="checkbox" name="discomfort" value="Fatigue"><span>Fatigue</span></label>
+              <label><input type="checkbox" name="discomfort" value="Insomnia"><span>Insomnia</span></label>
+              <label><input type="checkbox" name="discomfort" value="Anxiety"><span>Anxiety</span></label>
+              <label><input type="checkbox" name="discomfort" value="None"><span>None</span></label>
             </div>
           </div>
 
           <label class="field">
-            <span>备注</span>
-            <textarea id="notes" name="notes" rows="4" placeholder="比如：今天压力来源、让你开心的事、睡眠情况……"></textarea>
+            <span>Notes</span>
+            <textarea id="notes" name="notes" rows="4" placeholder="For example: stress triggers, something nice that happened, sleep quality..."></textarea>
           </label>
 
           <div class="form-actions">
-            <button class="primary-button" type="submit">保存今天的记录</button>
+            <button class="primary-button" type="submit">Save today</button>
             <p id="formMessage" class="form-message" aria-live="polite"></p>
           </div>
         </form>
       </section>
 
+      <section id="calendarPanel" class="panel calendar-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Calendar View</p>
+            <h2>Monthly calendar</h2>
+          </div>
+          <div class="calendar-nav">
+            <button id="prevMonthButton" class="ghost-button" type="button">Previous</button>
+            <p id="calendarTitle" class="calendar-title"></p>
+            <button id="nextMonthButton" class="ghost-button" type="button">Next</button>
+          </div>
+        </div>
+        <div class="weekday-row" aria-hidden="true">
+          <span>Mon</span>
+          <span>Tue</span>
+          <span>Wed</span>
+          <span>Thu</span>
+          <span>Fri</span>
+          <span>Sat</span>
+          <span>Sun</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <p class="calendar-hint">Tap any day to load that entry into the form for editing.</p>
+      </section>
+    </section>
+
+    <section id="trendsPanel" class="trends-grid">
+      <section class="panel chart-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Mood Trend</p>
+            <h2>Mood trend</h2>
+          </div>
+          <p class="chart-caption">Last 30 days</p>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="moodChart" width="720" height="320" aria-label="Mood trend chart"></canvas>
+          <div id="moodChartEmptyState" class="chart-empty-state">Log at least 2 days to see your mood trend.</div>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot low"></i>Low</span>
+          <span><i class="legend-dot mid"></i>Steady</span>
+          <span><i class="legend-dot high"></i>High</span>
+        </div>
+      </section>
+
+      <section class="panel chart-panel">
+        <div class="panel-header">
+          <div>
+            <p class="panel-kicker">Weight Trend</p>
+            <h2>Weight trend</h2>
+          </div>
+          <p class="chart-caption">Last 30 days</p>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="weightChart" width="720" height="320" aria-label="Weight trend chart"></canvas>
+          <div id="weightChartEmptyState" class="chart-empty-state">Log at least 2 weight entries to see your weight trend.</div>
+        </div>
+      </section>
+    </section>
+
+    <section class="content-grid bottom-grid">
       <section id="historyPanel" class="panel history-panel">
         <div class="panel-header">
           <div>
             <p class="panel-kicker">Recent Entries</p>
-            <h2>最近记录</h2>
+            <h2>History</h2>
           </div>
-          <button id="exportButton" class="ghost-button" type="button">导出 JSON</button>
+          <button id="exportButton" class="ghost-button" type="button">Export JSON</button>
         </div>
 
         <div id="historyList" class="history-list empty-state">
-          还没有记录，先填写今天的状态吧。
+          No entries yet. Start by logging today.
         </div>
       </section>
     </section>
@@ -206,13 +228,14 @@
           <p class="entry-date"></p>
           <h3 class="entry-mood"></h3>
         </div>
-        <button class="delete-button" type="button">删除</button>
+        <button class="delete-button" type="button">Delete</button>
       </div>
       <div class="tag-row entry-exercise"></div>
       <div class="meta-grid">
-        <p><strong>姨妈：</strong><span class="entry-period"></span></p>
-        <p><strong>吃饭：</strong><span class="entry-meal"></span></p>
-        <p><strong>不适：</strong><span class="entry-discomfort"></span></p>
+        <p><strong>Period:</strong> <span class="entry-period"></span></p>
+        <p><strong>Meals:</strong> <span class="entry-meal"></span></p>
+        <p><strong>Weight:</strong> <span class="entry-weight"></span></p>
+        <p><strong>Discomfort:</strong> <span class="entry-discomfort"></span></p>
       </div>
       <p class="entry-notes"></p>
     </article>

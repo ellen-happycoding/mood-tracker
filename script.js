@@ -1,10 +1,10 @@
 const STORAGE_KEY = "mood-tracker-entries-v1";
 const MOOD_SCORES = {
-  很低落: 1,
-  有点低: 2,
-  平稳: 3,
-  不错: 4,
-  很开心: 5
+  "Very low": 1,
+  "A bit low": 2,
+  Steady: 3,
+  Good: 4,
+  Happy: 5
 };
 
 const form = document.getElementById("trackerForm");
@@ -17,12 +17,15 @@ const totalEntries = document.getElementById("totalEntries");
 const latestMood = document.getElementById("latestMood");
 const exerciseRate = document.getElementById("exerciseRate");
 const dateInput = document.getElementById("date");
+const weightInput = document.getElementById("weight");
 const calendarTitle = document.getElementById("calendarTitle");
 const calendarGrid = document.getElementById("calendarGrid");
 const prevMonthButton = document.getElementById("prevMonthButton");
 const nextMonthButton = document.getElementById("nextMonthButton");
 const moodChart = document.getElementById("moodChart");
-const chartEmptyState = document.getElementById("chartEmptyState");
+const moodChartEmptyState = document.getElementById("moodChartEmptyState");
+const weightChart = document.getElementById("weightChart");
+const weightChartEmptyState = document.getElementById("weightChartEmptyState");
 
 const today = new Date();
 const todayKey = toDateValue(today);
@@ -39,14 +42,17 @@ form.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const formData = new FormData(form);
+  const weightRaw = String(formData.get("weight") || "").trim();
+  const parsedWeight = weightRaw ? Number(weightRaw) : null;
   const entry = {
     id: crypto.randomUUID(),
     date: formData.get("date"),
     mood: formData.get("mood"),
-    exercise: normalizeMultiSelect(formData.getAll("exercise"), "没有运动"),
+    exercise: normalizeMultiSelect(formData.getAll("exercise"), "No exercise"),
     periodStatus: formData.get("periodStatus"),
     mealStatus: formData.get("mealStatus"),
-    discomfort: normalizeMultiSelect(formData.getAll("discomfort"), "没有明显不适"),
+    weight: Number.isFinite(parsedWeight) ? Number(parsedWeight.toFixed(1)) : null,
+    discomfort: normalizeMultiSelect(formData.getAll("discomfort"), "None"),
     notes: String(formData.get("notes") || "").trim(),
     createdAt: new Date().toISOString()
   };
@@ -57,10 +63,10 @@ form.addEventListener("submit", (event) => {
     entry.id = entries[existingIndex].id;
     entry.createdAt = entries[existingIndex].createdAt;
     entries[existingIndex] = entry;
-    showMessage("已更新这一天的记录。");
+    showMessage("Updated this day's entry.");
   } else {
     entries.unshift(entry);
-    showMessage("今天的状态已经保存。");
+    showMessage("Today's entry has been saved.");
   }
 
   entries = sortEntries(entries);
@@ -73,14 +79,15 @@ form.addEventListener("submit", (event) => {
 resetButton.addEventListener("click", () => {
   form.reset();
   dateInput.value = todayKey;
+  weightInput.value = "";
   selectedDate = todayKey;
-  showMessage("表单已清空，可以重新填写。");
+  showMessage("The form has been reset.");
   renderCalendar();
 });
 
 exportButton.addEventListener("click", () => {
   if (!entries.length) {
-    showMessage("还没有数据可以导出。");
+    showMessage("No data to export yet.");
     return;
   }
 
@@ -91,7 +98,7 @@ exportButton.addEventListener("click", () => {
   link.download = `mood-tracker-${todayKey}.json`;
   link.click();
   URL.revokeObjectURL(url);
-  showMessage("已导出 JSON 文件。");
+  showMessage("JSON file exported.");
 });
 
 historyList.addEventListener("click", (event) => {
@@ -114,7 +121,7 @@ historyList.addEventListener("click", (event) => {
   }
 
   render();
-  showMessage("这条记录已删除。");
+  showMessage("This entry has been deleted.");
 });
 
 calendarGrid.addEventListener("click", (event) => {
@@ -146,7 +153,8 @@ nextMonthButton.addEventListener("click", () => {
 function render() {
   renderSummary();
   renderCalendar();
-  renderChart();
+  renderMoodChart();
+  renderWeightChart();
   renderHistory();
 }
 
@@ -159,15 +167,15 @@ function renderSummary() {
     return;
   }
 
-  const activeDays = entries.filter((entry) => !entry.exercise.includes("没有运动")).length;
+  const activeDays = entries.filter((entry) => isExerciseDay(entry)).length;
   exerciseRate.textContent = `${Math.round((activeDays / entries.length) * 100)}%`;
 }
 
 function renderCalendar() {
   calendarGrid.innerHTML = "";
-  calendarTitle.textContent = new Intl.DateTimeFormat("zh-CN", {
+  calendarTitle.textContent = new Intl.DateTimeFormat("en-US", {
     year: "numeric",
-    month: "long"
+    month: "short"
   }).format(currentMonth);
 
   const year = currentMonth.getFullYear();
@@ -206,99 +214,157 @@ function renderCalendar() {
     button.innerHTML = `
       <span class="day-number">${day}</span>
       ${entry ? `<span class="day-badge ${getMoodClass(entry.mood)}">${entry.mood}</span>` : ""}
-      <span class="day-subtext">${entry ? summarizeDay(entry) : "暂无记录"}</span>
+      <span class="day-subtext">${entry ? summarizeDay(entry) : "No entry"}</span>
     `;
 
     calendarGrid.appendChild(button);
   }
 }
 
-function renderChart() {
-  const chartEntries = [...entries]
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(-14);
+function renderMoodChart() {
+  const chartEntries = getEntriesWithinLastMonth(entries);
 
-  if (chartEntries.length < 2) {
-    moodChart.hidden = true;
-    chartEmptyState.hidden = false;
+  renderLineChart({
+    canvas: moodChart,
+    emptyState: moodChartEmptyState,
+    points: chartEntries.map((entry) => ({
+      date: entry.date,
+      value: MOOD_SCORES[entry.mood] || 3,
+      color: getMoodColor(MOOD_SCORES[entry.mood] || 3)
+    })),
+    minPoints: 2,
+    minValue: 1,
+    maxValue: 5,
+    axisLabel: getMoodLabel,
+    lineColor: "#bf5f3c",
+    fillTop: "rgba(191, 95, 60, 0.30)",
+    fillBottom: "rgba(191, 95, 60, 0.02)"
+  });
+}
+
+function renderWeightChart() {
+  const chartEntries = getEntriesWithinLastMonth(entries)
+    .filter((entry) => typeof entry.weight === "number")
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const values = chartEntries.map((entry) => entry.weight);
+  const min = values.length ? Math.floor(Math.min(...values)) - 1 : 40;
+  const max = values.length ? Math.ceil(Math.max(...values)) + 1 : 80;
+
+  renderLineChart({
+    canvas: weightChart,
+    emptyState: weightChartEmptyState,
+    points: chartEntries.map((entry) => ({
+      date: entry.date,
+      value: entry.weight,
+      color: "#7eab72"
+    })),
+    minPoints: 2,
+    minValue: min,
+    maxValue: max === min ? min + 2 : max,
+    axisLabel: (value) => `${value}kg`,
+    lineColor: "#5d8d57",
+    fillTop: "rgba(126, 171, 114, 0.24)",
+    fillBottom: "rgba(126, 171, 114, 0.03)"
+  });
+}
+
+function renderLineChart(config) {
+  const {
+    canvas,
+    emptyState,
+    points,
+    minPoints,
+    minValue,
+    maxValue,
+    axisLabel,
+    lineColor,
+    fillTop,
+    fillBottom
+  } = config;
+
+  if (points.length < minPoints) {
+    canvas.hidden = true;
+    emptyState.hidden = false;
     return;
   }
 
-  moodChart.hidden = false;
-  chartEmptyState.hidden = true;
+  canvas.hidden = false;
+  emptyState.hidden = true;
 
-  syncCanvasSize();
+  syncCanvasSize(canvas);
 
-  const context = moodChart.getContext("2d");
-  const width = moodChart.width;
-  const height = moodChart.height;
-  const padding = { top: 28, right: 24, bottom: 48, left: 42 };
+  const context = canvas.getContext("2d");
+  const width = canvas.width;
+  const height = canvas.height;
+  const padding = { top: 28, right: 24, bottom: 48, left: 52 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const stepX = chartWidth / Math.max(chartEntries.length - 1, 1);
+  const stepX = chartWidth / Math.max(points.length - 1, 1);
+  const axisSteps = 5;
+  const valueRange = Math.max(maxValue - minValue, 1);
 
   context.clearRect(0, 0, width, height);
-
   context.strokeStyle = "rgba(87, 57, 37, 0.12)";
   context.lineWidth = 1;
-  context.font = '14px "Noto Sans SC", sans-serif';
+  context.font = '14px "Noto Sans", sans-serif';
   context.fillStyle = "#7c6658";
 
-  for (let score = 1; score <= 5; score += 1) {
-    const y = padding.top + ((5 - score) / 4) * chartHeight;
+  for (let index = 0; index < axisSteps; index += 1) {
+    const ratio = index / (axisSteps - 1);
+    const y = padding.top + ratio * chartHeight;
+    const value = maxValue - ratio * valueRange;
     context.beginPath();
     context.moveTo(padding.left, y);
     context.lineTo(width - padding.right, y);
     context.stroke();
-    context.fillText(getMoodLabel(score), 8, y + 5);
+    context.fillText(axisLabel(formatAxisValue(value, minValue, maxValue)), 8, y + 5);
   }
 
-  const points = chartEntries.map((entry, index) => {
-    const score = MOOD_SCORES[entry.mood] || 3;
+  const chartPoints = points.map((point, index) => {
+    const normalized = (point.value - minValue) / valueRange;
     return {
       x: padding.left + index * stepX,
-      y: padding.top + ((5 - score) / 4) * chartHeight,
-      score,
-      label: entry.mood,
-      date: entry.date
+      y: padding.top + (1 - normalized) * chartHeight,
+      ...point
     };
   });
 
   const gradient = context.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-  gradient.addColorStop(0, "rgba(191, 95, 60, 0.30)");
-  gradient.addColorStop(1, "rgba(191, 95, 60, 0.02)");
+  gradient.addColorStop(0, fillTop);
+  gradient.addColorStop(1, fillBottom);
 
   context.beginPath();
-  context.moveTo(points[0].x, height - padding.bottom);
-  points.forEach((point) => context.lineTo(point.x, point.y));
-  context.lineTo(points[points.length - 1].x, height - padding.bottom);
+  context.moveTo(chartPoints[0].x, height - padding.bottom);
+  chartPoints.forEach((point) => context.lineTo(point.x, point.y));
+  context.lineTo(chartPoints[chartPoints.length - 1].x, height - padding.bottom);
   context.closePath();
   context.fillStyle = gradient;
   context.fill();
 
   context.beginPath();
-  points.forEach((point, index) => {
+  chartPoints.forEach((point, index) => {
     if (index === 0) {
       context.moveTo(point.x, point.y);
     } else {
       context.lineTo(point.x, point.y);
     }
   });
-  context.strokeStyle = "#bf5f3c";
+  context.strokeStyle = lineColor;
   context.lineWidth = 3;
   context.stroke();
 
-  points.forEach((point, index) => {
+  chartPoints.forEach((point, index) => {
     context.beginPath();
     context.arc(point.x, point.y, 5, 0, Math.PI * 2);
-    context.fillStyle = getMoodColor(point.score);
+    context.fillStyle = point.color;
     context.fill();
     context.strokeStyle = "#fffdf9";
     context.lineWidth = 2;
     context.stroke();
 
     context.fillStyle = "#7c6658";
-    context.textAlign = index === 0 ? "left" : index === points.length - 1 ? "right" : "center";
+    context.textAlign = index === 0 ? "left" : index === chartPoints.length - 1 ? "right" : "center";
     context.fillText(formatShortDate(point.date), point.x, height - 16);
   });
 
@@ -310,7 +376,7 @@ function renderHistory() {
 
   if (!entries.length) {
     historyList.className = "history-list empty-state";
-    historyList.textContent = "还没有记录，先填写今天的状态吧。";
+    historyList.textContent = "No entries yet. Start by logging today.";
     return;
   }
 
@@ -322,10 +388,11 @@ function renderHistory() {
     node.querySelector(".entry-mood").textContent = entry.mood;
     node.querySelector(".entry-period").textContent = entry.periodStatus;
     node.querySelector(".entry-meal").textContent = entry.mealStatus;
-    node.querySelector(".entry-discomfort").textContent = entry.discomfort.join("、");
+    node.querySelector(".entry-weight").textContent = formatWeight(entry.weight);
+    node.querySelector(".entry-discomfort").textContent = entry.discomfort.join(", ");
 
     const notes = node.querySelector(".entry-notes");
-    notes.textContent = entry.notes || "今天没有额外备注。";
+    notes.textContent = entry.notes || "No extra notes for today.";
 
     const tagRow = node.querySelector(".entry-exercise");
     entry.exercise.forEach((item) => {
@@ -346,9 +413,10 @@ function loadEntryIntoForm(date) {
   const entry = entries.find((item) => item.date === date);
   form.reset();
   dateInput.value = date;
+  weightInput.value = "";
 
   if (!entry) {
-    showMessage(`已切换到 ${formatDate(date)}，可以开始填写。`);
+    showMessage(`Switched to ${formatDate(date)}. You can start logging now.`);
     return;
   }
 
@@ -363,8 +431,9 @@ function loadEntryIntoForm(date) {
   document.getElementById("periodStatus").value = entry.periodStatus;
   document.getElementById("mealStatus").value = entry.mealStatus;
   document.getElementById("notes").value = entry.notes;
+  weightInput.value = typeof entry.weight === "number" ? String(entry.weight) : "";
 
-  showMessage(`已载入 ${formatDate(date)} 的记录。`);
+  showMessage(`Loaded the entry for ${formatDate(date)}.`);
 }
 
 function setupPwa() {
@@ -373,19 +442,20 @@ function setupPwa() {
   }
 
   window.addEventListener("resize", () => {
-    renderChart();
+    renderMoodChart();
+    renderWeightChart();
   });
 }
 
-function syncCanvasSize() {
-  const rect = moodChart.getBoundingClientRect();
+function syncCanvasSize(canvas) {
+  const rect = canvas.getBoundingClientRect();
   const pixelRatio = window.devicePixelRatio || 1;
   const width = Math.max(Math.floor(rect.width * pixelRatio), 320);
   const height = Math.max(Math.floor(rect.height * pixelRatio), 220);
 
-  if (moodChart.width !== width || moodChart.height !== height) {
-    moodChart.width = width;
-    moodChart.height = height;
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
   }
 }
 
@@ -405,14 +475,18 @@ function createEmptyDay() {
 
 function summarizeDay(entry) {
   const fragments = [];
-  fragments.push(entry.exercise.includes("没有运动") ? "未运动" : "有运动");
+  fragments.push(isExerciseDay(entry) ? "Exercised" : "No exercise");
 
-  if (entry.periodStatus === "来了") {
-    fragments.push("姨妈中");
+  if (typeof entry.weight === "number") {
+    fragments.push(`${entry.weight}kg`);
   }
 
-  if (!entry.discomfort.includes("没有明显不适")) {
-    fragments.push("有不适");
+  if (entry.periodStatus === "On period") {
+    fragments.push("Period");
+  }
+
+  if (!entry.discomfort.includes("None")) {
+    fragments.push("Discomfort");
   }
 
   return fragments.join(" · ");
@@ -441,13 +515,49 @@ function getMoodColor(score) {
 
 function getMoodLabel(score) {
   const labels = {
-    1: "低落",
-    2: "偏低",
-    3: "平稳",
-    4: "不错",
-    5: "开心"
+    1: "Very low",
+    2: "Low",
+    3: "Steady",
+    4: "Good",
+    5: "Happy"
   };
   return labels[score];
+}
+
+function formatAxisValue(value, min, max) {
+  const span = max - min;
+  if (span <= 8) {
+    return Number(value.toFixed(1));
+  }
+  return Math.round(value);
+}
+
+function formatWeight(weight) {
+  return typeof weight === "number" ? `${weight.toFixed(1)} kg` : "Not logged";
+}
+
+function isExerciseDay(entry) {
+  const exerciseItems = Array.isArray(entry.exercise) ? entry.exercise : [];
+  const noExerciseValues = new Set(["No exercise", "没有运动"]);
+
+  if (!exerciseItems.length) {
+    return false;
+  }
+
+  return !exerciseItems.some((item) => noExerciseValues.has(item));
+}
+
+function getEntriesWithinLastMonth(list) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 30);
+
+  return [...list]
+    .filter((entry) => {
+      const date = new Date(`${entry.date}T00:00:00`);
+      return date >= start && date <= end;
+    })
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 }
 
 function loadEntries() {
@@ -492,7 +602,7 @@ function toDateValue(date) {
 
 function formatDate(dateString) {
   const date = new Date(`${dateString}T00:00:00`);
-  return new Intl.DateTimeFormat("zh-CN", {
+  return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",

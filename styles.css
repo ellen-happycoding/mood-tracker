@@ -13,7 +13,7 @@
   --mid: #f0c36a;
   --high: #7eab72;
   --shadow: 0 24px 60px rgba(75, 40, 20, 0.12);
-  font-family: "Noto Sans SC", sans-serif;
+  font-family: "Noto Sans", sans-serif;
 }
 
 * {
@@ -125,7 +125,8 @@ h1 {
 }
 
 .overview-grid,
-.content-grid {
+.content-grid,
+.trends-grid {
   display: grid;
   gap: 24px;
 }
@@ -137,6 +138,19 @@ h1 {
 
 .content-grid {
   grid-template-columns: 1.1fr 0.9fr;
+}
+
+.top-grid {
+  margin-bottom: 24px;
+}
+
+.bottom-grid {
+  grid-template-columns: 1fr;
+  margin-top: 24px;
+}
+
+.trends-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .panel {
@@ -160,15 +174,16 @@ h1 {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
 }
 
 .calendar-title {
-  min-width: 110px;
+  min-width: 84px;
   text-align: center;
   font-weight: 700;
   padding: 0 6px;
+  white-space: nowrap;
 }
 
 .weekday-row,
@@ -269,7 +284,8 @@ h1 {
   min-height: 320px;
 }
 
-#moodChart {
+#moodChart,
+#weightChart {
   width: 100%;
   height: 280px;
   display: block;
@@ -364,6 +380,24 @@ h1 {
   font-weight: 600;
 }
 
+.weight-field {
+  display: grid;
+  grid-template-columns: auto minmax(110px, 170px) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.weight-field > span,
+.weight-field em {
+  margin: 0;
+}
+
+.weight-field em {
+  color: var(--muted);
+  font-style: normal;
+  font-weight: 600;
+}
+
 input[type="date"],
 select,
 textarea {
@@ -374,6 +408,10 @@ textarea {
   padding: 14px 16px;
   font: inherit;
   color: var(--text);
+}
+
+.weight-field input {
+  min-width: 0;
 }
 
 textarea {
@@ -519,7 +557,8 @@ textarea {
 
 @media (max-width: 960px) {
   .overview-grid,
-  .content-grid {
+  .content-grid,
+  .trends-grid {
     grid-template-columns: 1fr;
   }
 
@@ -578,10 +617,21 @@ textarea {
 
   .panel-header,
   .entry-topline,
-  .form-actions,
-  .calendar-nav {
+  .form-actions {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .calendar-nav {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .calendar-nav .ghost-button {
+    padding: 10px 12px;
+    white-space: nowrap;
   }
 
   .segmented-control,
@@ -589,6 +639,11 @@ textarea {
   .inline-grid,
   .hero-stats {
     grid-template-columns: 1fr;
+  }
+
+  .weight-field {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .weekday-row,
@@ -611,7 +666,8 @@ textarea {
     min-height: 260px;
   }
 
-  #moodChart {
+  #moodChart,
+  #weightChart {
     height: 220px;
   }
 }
