@@ -1,0 +1,19 @@
+{
+  "name": "Mood Tracker",
+  "short_name": "Mood",
+  "description": "记录每天的情绪、运动、饮食、姨妈和身体状态。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4efe7",
+  "theme_color": "#bf5f3c",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
