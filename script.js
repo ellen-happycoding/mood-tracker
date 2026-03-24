@@ -288,12 +288,8 @@ async function signInWithGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
 
   try {
-    if (isMobileDevice()) {
-      await auth.signInWithRedirect(provider);
-      return;
-    }
-
-    await auth.signInWithPopup(provider);
+    showMessage("Redirecting to Google sign-in...");
+    await auth.signInWithRedirect(provider);
   } catch (error) {
     showMessage(error.message || "Google sign-in failed.");
   }
@@ -810,8 +806,4 @@ function getDateParts(dateString) {
 
 function showMessage(message) {
   formMessage.textContent = message;
-}
-
-function isMobileDevice() {
-  return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 }
