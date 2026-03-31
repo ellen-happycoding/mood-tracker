@@ -1,4 +1,4 @@
-const STORAGE_KEY = "mood-tracker-entries-v6";
+const STORAGE_KEY = "mood-tracker-entries-v1";
 const MOOD_SCORES = {
   "Very low": 1,
   "A bit low": 2,
@@ -26,11 +26,6 @@ let moodChart;
 let moodChartEmptyState;
 let weightChart;
 let weightChartEmptyState;
-let authTitle;
-let authStatus;
-let authDebug;
-let loginButton;
-let logoutButton;
 
 const today = new Date();
 const todayKey = toDateValue(today);
@@ -39,21 +34,14 @@ let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 let selectedDate = todayKey;
 let entries = [];
 
-let auth = null;
-let db = null;
-let firebaseEnabled = false;
-let currentUser = null;
-
 window.addEventListener("load", initApp);
-window.handleGoogleLogin = () => {
-  signInWithGoogle();
-};
 
 function initApp() {
   bindElements();
   dateInput.value = todayKey;
   bindEvents();
-  initFirebase();
+  entries = loadEntriesFromLocal();
+  render();
 }
 
 function bindElements() {
@@ -76,11 +64,6 @@ function bindElements() {
   moodChartEmptyState = document.getElementById("moodChartEmptyState");
   weightChart = document.getElementById("weightChart");
   weightChartEmptyState = document.getElementById("weightChartEmptyState");
-  authTitle = document.getElementById("authTitle");
-  authStatus = document.getElementById("authStatus");
-  authDebug = document.getElementById("authDebug");
-  loginButton = document.getElementById("loginButton");
-  logoutButton = document.getElementById("logoutButton");
 }
 
 function bindEvents() {
@@ -97,62 +80,14 @@ function bindEvents() {
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
     renderCalendar();
   });
-  loginButton.addEventListener("click", signInWithGoogle);
-  logoutButton.addEventListener("click", signOutUser);
   window.addEventListener("resize", () => {
     renderMoodChart();
     renderWeightChart();
   });
 }
 
-function initFirebase() {
-  const firebaseOptions = window.MOOD_TRACKER_FIREBASE;
-  const config = firebaseOptions?.config || {};
-  firebaseEnabled = Boolean(
-    firebaseOptions?.enabled &&
-    window.firebase &&
-    config.apiKey &&
-    config.authDomain &&
-    config.projectId &&
-    config.appId
-  );
-
-  if (!firebaseEnabled) {
-    entries = loadEntriesFromLocal();
-    updateAuthUi();
-    render();
-    return;
-  }
-
-  firebase.initializeApp(config);
-  auth = firebase.auth();
-  db = firebase.firestore();
-  auth.useDeviceLanguage();
-
-  auth.getRedirectResult().catch((error) => {
-    showAuthError(error);
-  });
-
-  auth.onAuthStateChanged(async (user) => {
-    currentUser = user;
-    updateAuthUi();
-
-    if (currentUser) {
-      await loadEntriesFromCloud();
-    } else {
-      entries = [];
-      render();
-    }
-  });
-}
-
-async function handleSubmit(event) {
+function handleSubmit(event) {
   event.preventDefault();
-
-  if (firebaseEnabled && !currentUser) {
-    showMessage("Sign in with Google to save and sync your entries.");
-    return;
-  }
 
   const formData = new FormData(form);
   const weightRaw = String(formData.get("weight") || "").trim();
@@ -185,12 +120,7 @@ async function handleSubmit(event) {
   entries = sortEntries(entries);
   selectedDate = entry.date;
   currentMonth = new Date(getDateParts(entry.date).year, getDateParts(entry.date).month - 1, 1);
-
-  if (firebaseEnabled && currentUser) {
-    await saveEntryToCloud(entry);
-  } else {
-    saveEntriesToLocal(entries);
-  }
+  saveEntriesToLocal(entries);
 
   render();
 }
@@ -220,7 +150,7 @@ function handleExport() {
   showMessage("JSON file exported.");
 }
 
-async function handleHistoryClick(event) {
+function handleHistoryClick(event) {
   const target = event.target;
 
   if (!(target instanceof HTMLButtonElement)) {
@@ -232,14 +162,8 @@ async function handleHistoryClick(event) {
     return;
   }
 
-  const entryToDelete = entries.find((entry) => entry.id === entryId);
   entries = entries.filter((entry) => entry.id !== entryId);
-
-  if (firebaseEnabled && currentUser && entryToDelete) {
-    await deleteEntryFromCloud(entryToDelete.date);
-  } else {
-    saveEntriesToLocal(entries);
-  }
+  saveEntriesToLocal(entries);
 
   if (!entries.some((entry) => entry.date === selectedDate)) {
     selectedDate = dateInput.value || todayKey;
@@ -263,106 +187,6 @@ function handleCalendarClick(event) {
   selectedDate = date;
   loadEntryIntoForm(date);
   renderCalendar();
-}
-
-function updateAuthUi() {
-  if (!firebaseEnabled) {
-    authTitle.textContent = "Local mode";
-    authStatus.textContent = "Cloud sync is not configured yet. Your data is saved only in this browser.";
-    authDebug.textContent = "Debug: Firebase disabled";
-    loginButton.hidden = true;
-    logoutButton.hidden = true;
-    return;
-  }
-
-  if (currentUser) {
-    authTitle.textContent = "Google account connected";
-    authStatus.textContent = `Signed in as ${currentUser.displayName || currentUser.email}. Only your own records will load here.`;
-    authDebug.textContent = `Debug: signed in as ${currentUser.email || "unknown user"}`;
-    loginButton.hidden = true;
-    logoutButton.hidden = false;
-    return;
-  }
-
-  authTitle.textContent = "Sign in to sync";
-  authStatus.textContent = "Sign in with Google to keep your records private to your own account and sync them across devices.";
-  authDebug.textContent = "Debug: no Firebase user session";
-  loginButton.hidden = false;
-  logoutButton.hidden = true;
-}
-
-async function signInWithGoogle() {
-  if (!firebaseEnabled || !auth) {
-    showMessage("Google sign-in is not configured yet.");
-    return;
-  }
-
-  showMessage("Starting Google sign-in...");
-
-  const provider = new firebase.auth.GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
-
-  try {
-    if (isMobileDevice()) {
-      showMessage("Redirecting to Google sign-in...");
-      await auth.signInWithRedirect(provider);
-      return;
-    }
-
-    await auth.signInWithPopup(provider);
-  } catch (error) {
-    if (error?.code === "auth/popup-blocked" || error?.code === "auth/cancelled-popup-request") {
-      try {
-        showMessage("Popup was blocked. Switching to redirect sign-in...");
-        await auth.signInWithRedirect(provider);
-        return;
-      } catch (redirectError) {
-        showAuthError(redirectError);
-        return;
-      }
-    }
-
-    showAuthError(error);
-  }
-}
-
-async function signOutUser() {
-  if (!auth) {
-    return;
-  }
-
-  await auth.signOut();
-  showMessage("Signed out.");
-}
-
-async function loadEntriesFromCloud() {
-  const snapshot = await db
-    .collection("users")
-    .doc(currentUser.uid)
-    .collection("entries")
-    .orderBy("date", "desc")
-    .get();
-
-  entries = snapshot.docs.map((doc) => normalizeEntry(doc.data()));
-  render();
-}
-
-async function saveEntryToCloud(entry) {
-  await db
-    .collection("users")
-    .doc(currentUser.uid)
-    .collection("entries")
-    .doc(entry.date)
-    .set(entry);
-}
-
-async function deleteEntryFromCloud(date) {
-  await db
-    .collection("users")
-    .doc(currentUser.uid)
-    .collection("entries")
-    .doc(date)
-    .delete();
 }
 
 function normalizeEntry(entry) {
@@ -600,9 +424,7 @@ function renderHistory() {
 
   if (!entries.length) {
     historyList.className = "history-list empty-state";
-    historyList.textContent = firebaseEnabled && !currentUser
-      ? "Sign in to see your synced entries."
-      : "No entries yet. Start by logging today.";
+    historyList.textContent = "No entries yet. Start by logging today.";
     return;
   }
 
@@ -837,15 +659,4 @@ function getDateParts(dateString) {
 
 function showMessage(message) {
   formMessage.textContent = message;
-}
-
-function showAuthError(error) {
-  const message = error?.message || "Google sign-in failed.";
-  authStatus.textContent = message;
-  showMessage(message);
-  console.error(error);
-}
-
-function isMobileDevice() {
-  return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 }

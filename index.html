@@ -16,10 +16,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
-  <script defer src="https://www.gstatic.com/firebasejs/12.7.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/12.7.0/firebase-auth-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore-compat.js"></script>
-  <script defer src="./firebase-config.js"></script>
 </head>
 <body>
   <nav class="mobile-nav" aria-label="Quick navigation">
@@ -30,26 +26,11 @@
   </nav>
 
   <main class="app-shell">
-    <section class="auth-bar panel">
-      <div>
-        <p class="panel-kicker">Account</p>
-        <h2 id="authTitle">Local mode</h2>
-        <p id="authStatus" class="auth-status">
-          Cloud sync is not configured yet. Your data is currently saved only in this browser.
-        </p>
-        <p id="authDebug" class="auth-debug"></p>
-      </div>
-      <div class="auth-actions">
-        <button id="loginButton" class="primary-button" type="button" onclick="window.handleGoogleLogin && window.handleGoogleLogin()">Sign in with Google</button>
-        <button id="logoutButton" class="ghost-button" type="button" hidden>Sign out</button>
-      </div>
-    </section>
-
     <section class="hero-card">
       <p class="eyebrow">Daily Check-In</p>
       <h1>Track your body and mood today</h1>
       <p class="hero-copy">
-        Take a minute to capture how today feels. Mood, exercise, meals, period, weight, and physical discomfort can all be logged in one place.
+        Take a minute to capture how today feels. Everything is saved only in this browser for your own private daily tracking.
       </p>
       <div class="hero-stats">
         <article>
